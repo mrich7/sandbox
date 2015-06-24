@@ -1,5 +1,0 @@
-<launch>
-	<node pkg="hrl_pr2_ar_servo" name="sm_pr2_servoing" type="sm_pr2_servoing.py" output="screen" >
-        
-	<node pkg="hrl_pr2_ar_servo" name="pr2_ar_servo_goal_config" type="goal_config.py" output="screen">
-</launch>	
