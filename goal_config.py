@@ -17,22 +17,30 @@ from geometry_msgs.msg import PoseStamped
 class recastMarkerMsg:
     def __init__(self):
         rospy.init_node('pr2_ar_servo_goal_config')
-        self.defined=False        
-        rospy.Subscriber("ar_servo_goal_data", ARServoGoalData, self.goal_cb)
+        self.defined=False
+        print "Here is where I got"        
+        rospy.Subscriber('ar_servo_goal_data', ARServoGoalData, self.goal_cb)
         
     def goal_cb(self, msg):
         goal=msg
+        print "Got Message"
         if goal.marker_topic[0]=="/": #check if there is a '/' in front of the topic name so rostopic doesn't error
             marker_type, real_name, fn=rostopic.get_topic_type(goal.marker_topic)
         else:
             marker_type, real_name, fn=rostopic.get_topic_type("/"+goal.marker_topic)
-        
-        if marker_type == "ar_pose/ARMarker" and self.defined=False:
-            self.marker_repub=rospy.Publisher(real_name, AlvarMarkers)           
-            rospy.Subscriber(real_name, ARMarker, self.marker_switch)
-            self.defined=True:
+        print (marker_type)
+        self.marker_repub=rospy.Publisher('ar_tag_pose', AlvarMarkers)
+ 
+        if marker_type == "ar_pose/ARMarker" and not self.defined:
+            print"Republisher started for AR Pose markers"
+                      
+            rospy.Subscriber(real_name, ARMarker, self.ar_pose_switch)
+            self.defined=True
+        if marker_type =="ar_pose/AlvarMarkers" and not self.defined:
+            print"Republisher started for Alvar Markers"
+            rospy.Subscriber(real_name, AlvarMarkers, self.alvar_marker_switch)
 
-    def marker_switch(self, msg):
+    def ar_pose_switch(self, msg):
         old_msg=msg
         new_msg=AlvarMarkers()
         new_msg.header=old_msg.header
@@ -43,7 +51,14 @@ class recastMarkerMsg:
         marker.pose.header=old_msg.header
         marker.pose.pose=old_msg.pose.pose
         new_msg.markers=[marker]
-        self.marker_repub.publish(new_msg)                
+        print"Republishing"
+        self.marker_repub.publish(new_msg)
+   
+    def alvar_marker_switch(self, msg):
+        old_msg=msg
+        print "Republishing"
+        self.marker_repub.publish(old_msg)
+                
             
 if __name__=="__main__":
     a=recastMarkerMsg()
