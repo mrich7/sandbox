@@ -1,0 +1,60 @@
+<launch>
+
+<!--Launch ar_track_alvar to find AR tag to servo to without depth data. Assumes AR tag is 10cm x 10cm.-->
+    <arg name="marker_size" default="10.0" />
+	<arg name="max_new_marker_error" default="0.08" />
+	<arg name="max_track_error" default="0.2" />
+	<arg name="cam_image_topic" default="/head_mount_kinect/rgb/image" />
+	<arg name="cam_info_topic" default="/head_mount_kinect/rgb/camera_info" />	
+	<arg name="output_frame" default="torso_lift_link" />
+
+	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
+
+<!--Launch State Machine to Servo-->
+    <node pkg="hrl_pr2_ar_servo" name="sm_pr2_servoing" type="sm_pr2_servoing"
+          output="screen" >
+        <rosparam>
+            ar_servo_poses:
+                r_pr2_ar_pose_marker : [0.49032495,  0.51973125, -1.13842208]
+                l_pr2_ar_pose_marker : [0.62583374,  0.29632216, -1.24825643]
+        </rosparam>
+    </node>
+
+<!--Uncomment to launch ar_pose_to_alvar_relay if not using alvar markers--> 
+    
+    <!--node pkg="hrl_pr2_ar_servo" name="pr2_ar_servo_goal_config" type="ar_pose_to_alvar_relay" output="screen" respawn="true"/-->
+
+    <!-- Not using forarm camera -->
+    <!--
+    <rosparam command="load" file="$(find hrl_pr2_ar_servo)/params/l_forearm_cam_settings.yaml"
+              param="/l_forearm_cam" />
+	
+    <node pkg="costmap_services" name="costmap_services" type="costmap_services" 
+          respawn="true" output="screen">
+      <rosparam file="$(find kelsey_sandbox)/launch/laser_baseonly.yaml" command="load" />
+    </node>
+    -->
+
+    <node pkg="hrl_pr2_ar_servo" name="ar_confirm" type="ar_confirm" >
+        <param name="marker_width" value="0.1" />
+        <param name="timeout_time" value="0.3" />
+        <remap from="/camera" to="$(arg cam_image_topic)"/>
+    <!--ar_track_alvar doesn't use l and r, so just ar_pose_marker topic-->
+        <remap from="/ar_tag_r" to="/ar_pose_marker"/>  
+        <remap from="/ar_tag_l" to="/ar_pose_marker"/>
+        <remap from="/confirmation" to="/ar_servo/confirmation" />
+    </node>
+
+    <node pkg="hrl_pr2_ar_servo" name="ar_servo_image_proc" type="ar_servo_image_proc"
+          output="screen" respawn="True" >
+        <remap from="/camera" to="$(arg cam_image_topic)" />
+        <remap from="/output" to="$(arg cam_image_topic)_adjusted" />
+        <param name="black_cap" value="120" />
+        <param name="white_cap" value="140" />
+    </node>
+
+    
+
+
+
+</launch>
